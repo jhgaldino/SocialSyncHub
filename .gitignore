@@ -1,0 +1,67 @@
+# Build results
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio
+.vs/
+
+# Rider
+.idea/
+*.sln.iml
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Docker
+**/Dockerfile*
+**/docker-compose*.yml
+!docker-compose.yml
+
+# Entity Framework
+Migrations/
+
+# Test results
+TestResults/
+
+# Database
+*.mdf
+*.ldf
+
+# Secrets
+secrets.json
+appsettings.Development.json
+appsettings.Local.json
+
+# Publish
+publish/
+
+# Others
+*.swp
+*.tmp
+*.bak
+
+# Ignore SQL Server volume (if mapped)
+sqlserver_data/
+
+# Ignore coverage reports
+coverage/
+coverage*.json
+coverage*.xml
+
+# Ignore node_modules (if any JS/TS frontend)
+node_modules/
+
+# Ignore gateway logs
+gateway/Gateway.API/logs/
+services/UserService/UserService.API/logs/ 
