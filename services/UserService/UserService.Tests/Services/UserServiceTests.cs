@@ -4,6 +4,7 @@ using UserService.Application.DTOs;
 using UserService.Application.Services;
 using UserService.Domain.Entities;
 using UserService.Domain.Interfaces;
+using Xunit;
 
 namespace UserService.Tests.Services;
 

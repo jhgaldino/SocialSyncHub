@@ -5,6 +5,7 @@ using UserService.Application.DTOs;
 using UserService.Application.Services;
 using UserService.Domain.Entities;
 using UserService.Domain.Interfaces;
+using Xunit;
 
 namespace UserService.Tests.Services;
 
@@ -20,12 +21,9 @@ public class AuthServiceTests
         _mockConfiguration = new Mock<IConfiguration>();
         
         // Configurar JWT settings
-        var jwtSection = new Mock<IConfigurationSection>();
-        jwtSection.Setup(x => x["Secret"]).Returns("YourSuperSecretKeyHereThatIsAtLeast32CharactersLong");
-        jwtSection.Setup(x => x["Issuer"]).Returns("SocialSyncHub");
-        jwtSection.Setup(x => x["Audience"]).Returns("SocialSyncHubUsers");
-        
-        _mockConfiguration.Setup(x => x.GetSection("Jwt")).Returns(jwtSection.Object);
+        _mockConfiguration.Setup(x => x["Jwt:Secret"]).Returns("YourSuperSecretKeyHereThatIsAtLeast32CharactersLong");
+        _mockConfiguration.Setup(x => x["Jwt:Issuer"]).Returns("SocialSyncHub");
+        _mockConfiguration.Setup(x => x["Jwt:Audience"]).Returns("SocialSyncHubUsers");
         
         _authService = new AuthService(_mockRepository.Object, _mockConfiguration.Object);
     }
@@ -40,7 +38,11 @@ public class AuthServiceTests
             Password = "password123"
         };
 
-        var user = new User("Test User", "test@example.com", "XohImNooBHFR0OVvjcYpJ3NgPQ1qq73WKhHvch0VQtg=") // SHA256 hash of "password123"
+        var passwordHash = typeof(AuthService)
+            .GetMethod("HashPassword", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+            ?.Invoke(null, new object[] { "password123" }) as string ?? string.Empty;
+
+        var user = new User("Test User", "test@example.com", passwordHash)
         {
             Id = Guid.NewGuid(),
             CreatedAt = DateTime.UtcNow
@@ -162,7 +164,11 @@ public class AuthServiceTests
     public async Task ValidateTokenAsync_WhenValidToken_ShouldReturnTrue()
     {
         // Arrange
-        var user = new User("Test User", "test@example.com", "hashedPassword")
+        var passwordHash = typeof(AuthService)
+            .GetMethod("HashPassword", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+            ?.Invoke(null, new object[] { "password123" }) as string ?? string.Empty;
+
+        var user = new User("Test User", "test@example.com", passwordHash)
         {
             Id = Guid.NewGuid()
         };
