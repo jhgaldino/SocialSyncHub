@@ -6,6 +6,7 @@ using UserService.Application.Services;
 using UserService.Domain.Entities;
 using UserService.Domain.Interfaces;
 using Xunit;
+using ErrorOr;
 
 namespace UserService.Tests.Services;
 
@@ -58,16 +59,16 @@ public class AuthServiceTests
         var result = await _authService.LoginAsync(loginDto);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Token.Should().NotBeNullOrEmpty();
-        result.RefreshToken.Should().NotBeNullOrEmpty();
-        result.User.Email.Should().Be("test@example.com");
-        result.User.Name.Should().Be("Test User");
-        result.ExpiresAt.Should().BeAfter(DateTime.UtcNow);
+        result.IsError.Should().BeFalse();
+        result.Value.Token.Should().NotBeNullOrEmpty();
+        result.Value.RefreshToken.Should().NotBeNullOrEmpty();
+        result.Value.User.Email.Should().Be("test@example.com");
+        result.Value.User.Name.Should().Be("Test User");
+        result.Value.ExpiresAt.Should().BeAfter(DateTime.UtcNow);
     }
 
     [Fact]
-    public async Task LoginAsync_WhenInvalidEmail_ShouldThrowUnauthorizedAccessException()
+    public async Task LoginAsync_WhenInvalidEmail_ShouldReturnNotFoundError()
     {
         // Arrange
         var loginDto = new LoginDto
@@ -79,13 +80,16 @@ public class AuthServiceTests
         _mockRepository.Setup(r => r.GetByEmailAsync(loginDto.Email))
             .ReturnsAsync((User?)null);
 
-        // Act & Assert
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => 
-            _authService.LoginAsync(loginDto));
+        // Act
+        var result = await _authService.LoginAsync(loginDto);
+
+        // Assert
+        result.IsError.Should().BeTrue();
+        result.FirstError.Type.Should().Be(ErrorType.NotFound);
     }
 
     [Fact]
-    public async Task LoginAsync_WhenInvalidPassword_ShouldThrowUnauthorizedAccessException()
+    public async Task LoginAsync_WhenInvalidPassword_ShouldReturnValidationError()
     {
         // Arrange
         var loginDto = new LoginDto
@@ -103,9 +107,12 @@ public class AuthServiceTests
         _mockRepository.Setup(r => r.GetByEmailAsync(loginDto.Email))
             .ReturnsAsync(user);
 
-        // Act & Assert
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => 
-            _authService.LoginAsync(loginDto));
+        // Act
+        var result = await _authService.LoginAsync(loginDto);
+
+        // Assert
+        result.IsError.Should().BeTrue();
+        result.FirstError.Type.Should().Be(ErrorType.Validation);
     }
 
     [Fact]
@@ -130,18 +137,18 @@ public class AuthServiceTests
         var result = await _authService.RegisterAsync(registerDto);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Token.Should().NotBeNullOrEmpty();
-        result.RefreshToken.Should().NotBeNullOrEmpty();
-        result.User.Email.Should().Be("newuser@example.com");
-        result.User.Name.Should().Be("New User");
-        result.ExpiresAt.Should().BeAfter(DateTime.UtcNow);
+        result.IsError.Should().BeFalse();
+        result.Value.Token.Should().NotBeNullOrEmpty();
+        result.Value.RefreshToken.Should().NotBeNullOrEmpty();
+        result.Value.User.Email.Should().Be("newuser@example.com");
+        result.Value.User.Name.Should().Be("New User");
+        result.Value.ExpiresAt.Should().BeAfter(DateTime.UtcNow);
 
         _mockRepository.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Once);
     }
 
     [Fact]
-    public async Task RegisterAsync_WhenEmailAlreadyExists_ShouldThrowInvalidOperationException()
+    public async Task RegisterAsync_WhenEmailAlreadyExists_ShouldReturnConflictError()
     {
         // Arrange
         var registerDto = new RegisterDto
@@ -155,9 +162,12 @@ public class AuthServiceTests
         _mockRepository.Setup(r => r.ExistsByEmailAsync(registerDto.Email))
             .ReturnsAsync(true);
 
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
-            _authService.RegisterAsync(registerDto));
+        // Act
+        var result = await _authService.RegisterAsync(registerDto);
+
+        // Assert
+        result.IsError.Should().BeTrue();
+        result.FirstError.Type.Should().Be(ErrorType.Conflict);
     }
 
     [Fact]
@@ -185,7 +195,7 @@ public class AuthServiceTests
         var authResponse = await _authService.LoginAsync(loginDto);
 
         // Act
-        var isValid = await _authService.ValidateTokenAsync(authResponse.Token);
+        var isValid = await _authService.ValidateTokenAsync(authResponse.Value.Token);
 
         // Assert
         isValid.Should().BeTrue();

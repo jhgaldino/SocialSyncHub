@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using UserService.Application.DTOs;
 using UserService.Domain.Entities;
 using UserService.Domain.Interfaces;
+using ErrorOr;
 
 namespace UserService.Application.Services;
 
@@ -21,31 +22,32 @@ public class AuthService : IAuthService
         _configuration = configuration;
     }
 
-    public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto)
+    public async Task<ErrorOr<AuthResponseDto>> LoginAsync(LoginDto loginDto)
     {
         var user = await _userRepository.GetByEmailAsync(loginDto.Email);
         if (user == null)
         {
-            throw new UnauthorizedAccessException("Invalid email or password");
+            return Error.NotFound(description: "Email ou senha inválidos.");
         }
 
         if (!VerifyPassword(loginDto.Password, user.PasswordHash))
         {
-            throw new UnauthorizedAccessException("Invalid email or password");
+            return Error.Validation(description: "Email ou senha inválidos.");
         }
 
         // Atualizar último login
         user.LastLoginAt = DateTime.UtcNow;
         await _userRepository.UpdateAsync(user);
 
-        return await GenerateAuthResponseAsync(user);
+        var response = await GenerateAuthResponseAsync(user);
+        return response;
     }
 
-    public async Task<AuthResponseDto> RegisterAsync(RegisterDto registerDto)
+    public async Task<ErrorOr<AuthResponseDto>> RegisterAsync(RegisterDto registerDto)
     {
         if (await _userRepository.ExistsByEmailAsync(registerDto.Email))
         {
-            throw new InvalidOperationException($"User with email '{registerDto.Email}' already exists.");
+            return Error.Conflict(description: $"Usuário com email '{registerDto.Email}' já existe.");
         }
 
         var passwordHash = HashPassword(registerDto.Password);
@@ -53,7 +55,8 @@ public class AuthService : IAuthService
         
         await _userRepository.AddAsync(user);
 
-        return await GenerateAuthResponseAsync(user);
+        var response = await GenerateAuthResponseAsync(user);
+        return response;
     }
 
     public async Task<AuthResponseDto> RefreshTokenAsync(string refreshToken)

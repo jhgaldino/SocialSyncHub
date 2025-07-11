@@ -1,57 +1,52 @@
 using UserService.Application.DTOs;
 using UserService.Domain.Entities;
 using UserService.Domain.Interfaces;
+using AutoMapper;
+using ErrorOr;
 
 namespace UserService.Application.Services;
 
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IMapper _mapper;
 
-    public UserService(IUserRepository userRepository)
+    public UserService(IUserRepository userRepository, IMapper mapper)
     {
         _userRepository = userRepository;
+        _mapper = mapper;
     }
 
-    public async Task<UserDto?> GetByIdAsync(Guid id)
+    public async Task<ErrorOr<UserDto>> GetByIdAsync(Guid id)
     {
         var user = await _userRepository.GetByIdAsync(id);
-        return user != null ? MapToDto(user) : null;
+        if (user == null)
+        {
+            return Error.NotFound(description: $"Usuário com ID {id} não encontrado.");
+        }
+        return _mapper.Map<UserDto>(user);
     }
 
-    public async Task<IEnumerable<UserDto>> GetAllAsync()
+    public async Task<ErrorOr<List<UserDto>>> GetAllAsync()
     {
         var users = await _userRepository.GetAllAsync();
-        return users.Select(MapToDto);
+        var userDtos = users.Select(u => _mapper.Map<UserDto>(u)).ToList();
+        return userDtos;
     }
 
-    public async Task<UserDto> CreateAsync(CreateUserDto createUserDto)
+    public async Task<ErrorOr<UserDto>> CreateAsync(CreateUserDto createUserDto)
     {
-        // Verificar se o email já existe
         if (await _userRepository.ExistsByEmailAsync(createUserDto.Email))
         {
-            throw new InvalidOperationException($"User with email '{createUserDto.Email}' already exists.");
+            return Error.Conflict(description: $"Usuário com email '{createUserDto.Email}' já existe.");
         }
-
-        var user = new User(createUserDto.Name, createUserDto.Email, "");
+        var user = _mapper.Map<User>(createUserDto);
         await _userRepository.AddAsync(user);
-
-        return MapToDto(user);
+        return _mapper.Map<UserDto>(user);
     }
 
     public async Task<bool> ExistsAsync(Guid id)
     {
         return await _userRepository.ExistsAsync(id);
-    }
-
-    private static UserDto MapToDto(User user)
-    {
-        return new UserDto
-        {
-            Id = user.Id,
-            Name = user.Name,
-            Email = user.Email,
-            CreatedAt = user.CreatedAt
-        };
     }
 } 

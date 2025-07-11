@@ -1,15 +1,15 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace UserService.Application.DTOs;
 
+/// <summary>
+/// DTO para criação de usuário.
+/// </summary>
 public class CreateUserDto
 {
-    [Required]
-    [StringLength(100, MinimumLength = 2)]
+    /// <example>Usuario Teste</example>
+    /// <summary>Nome do usuário</summary>
     public string Name { get; set; } = string.Empty;
-    
-    [Required]
-    [EmailAddress]
-    [StringLength(150)]
+
+    /// <example>teste@exemplo.com</example>
+    /// <summary>Email do usuário</summary>
     public string Email { get; set; } = string.Empty;
 } 

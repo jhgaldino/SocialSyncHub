@@ -40,6 +40,9 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Configurar para escutar na porta 80
+builder.WebHost.UseUrls("http://0.0.0.0:80");
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -58,9 +61,10 @@ app.UseCors("AllowAll");
 
 app.UseAuthorization();
 
+// Mapear controllers antes do Ocelot
+app.MapControllers();
+
 // Usar Ocelot
 await app.UseOcelot();
-
-app.MapControllers();
 
 app.Run(); 

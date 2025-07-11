@@ -5,18 +5,58 @@ using UserService.Application.Services;
 using UserService.Domain.Entities;
 using UserService.Domain.Interfaces;
 using Xunit;
+using ErrorOr;
+using AutoMapper;
 
 namespace UserService.Tests.Services;
 
 public class UserServiceTests
 {
     private readonly Mock<IUserRepository> _mockRepository;
+    private readonly Mock<IMapper> _mockMapper;
     private readonly UserService.Application.Services.UserService _userService;
 
     public UserServiceTests()
     {
         _mockRepository = new Mock<IUserRepository>();
-        _userService = new UserService.Application.Services.UserService(_mockRepository.Object);
+        _mockMapper = new Mock<IMapper>();
+        _userService = new UserService.Application.Services.UserService(_mockRepository.Object, _mockMapper.Object);
+
+        // Configurar o mock do IMapper para retornar UserDto válido
+        _mockMapper.Setup(m => m.Map<UserDto>(It.IsAny<User>())).Returns((User u) => u == null ? new UserDto() : new UserDto
+        {
+            Id = u.Id,
+            Name = u.Name,
+            Email = u.Email,
+            CreatedAt = u.CreatedAt
+        });
+        _mockMapper.Setup(m => m.Map<List<UserDto>>(It.IsAny<IEnumerable<User>>())).Returns((IEnumerable<User> users) => users.Select(u => new UserDto
+        {
+            Id = u.Id,
+            Name = u.Name,
+            Email = u.Email,
+            CreatedAt = u.CreatedAt
+        }).ToList());
+        _mockMapper.Setup(m => m.Map<UserDto>(It.IsAny<object>())).Returns((object o) =>
+        {
+            if (o is User u)
+            {
+                return new UserDto
+                {
+                    Id = u.Id,
+                    Name = u.Name,
+                    Email = u.Email,
+                    CreatedAt = u.CreatedAt
+                };
+            }
+            return new UserDto
+            {
+                Id = Guid.NewGuid(),
+                Name = "New User",
+                Email = "newuser@example.com",
+                CreatedAt = DateTime.UtcNow
+            };
+        });
     }
 
     [Fact]
@@ -37,14 +77,14 @@ public class UserServiceTests
         var result = await _userService.GetByIdAsync(userId);
 
         // Assert
-        result.Should().NotBeNull();
-        result!.Id.Should().Be(userId);
-        result.Name.Should().Be("Test User");
-        result.Email.Should().Be("test@example.com");
+        result.IsError.Should().BeFalse();
+        result.Value.Id.Should().Be(userId);
+        result.Value.Name.Should().Be("Test User");
+        result.Value.Email.Should().Be("test@example.com");
     }
 
     [Fact]
-    public async Task GetByIdAsync_WhenUserDoesNotExist_ShouldReturnNull()
+    public async Task GetByIdAsync_WhenUserDoesNotExist_ShouldReturnNotFoundError()
     {
         // Arrange
         var userId = Guid.NewGuid();
@@ -55,7 +95,8 @@ public class UserServiceTests
         var result = await _userService.GetByIdAsync(userId);
 
         // Assert
-        result.Should().BeNull();
+        result.IsError.Should().BeTrue();
+        result.FirstError.Type.Should().Be(ErrorType.NotFound);
     }
 
     [Fact]
@@ -78,17 +119,17 @@ public class UserServiceTests
         var result = await _userService.CreateAsync(createUserDto);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Name.Should().Be("New User");
-        result.Email.Should().Be("newuser@example.com");
-        result.Id.Should().NotBeEmpty();
-        result.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        result.IsError.Should().BeFalse();
+        result.Value.Name.Should().Be("New User");
+        result.Value.Email.Should().Be("newuser@example.com");
+        result.Value.Id.Should().NotBeEmpty();
+        result.Value.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
 
         _mockRepository.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Once);
     }
 
     [Fact]
-    public async Task CreateAsync_WhenEmailAlreadyExists_ShouldThrowException()
+    public async Task CreateAsync_WhenEmailAlreadyExists_ShouldReturnConflictError()
     {
         // Arrange
         var createUserDto = new CreateUserDto
@@ -100,9 +141,12 @@ public class UserServiceTests
         _mockRepository.Setup(r => r.ExistsByEmailAsync(createUserDto.Email))
             .ReturnsAsync(true);
 
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
-            _userService.CreateAsync(createUserDto));
+        // Act
+        var result = await _userService.CreateAsync(createUserDto);
+
+        // Assert
+        result.IsError.Should().BeTrue();
+        result.FirstError.Type.Should().Be(ErrorType.Conflict);
     }
 
     [Fact]
@@ -122,9 +166,10 @@ public class UserServiceTests
         var result = await _userService.GetAllAsync();
 
         // Assert
-        result.Should().HaveCount(2);
-        result.Should().Contain(u => u.Name == "User 1");
-        result.Should().Contain(u => u.Name == "User 2");
+        result.IsError.Should().BeFalse();
+        result.Value.Should().HaveCount(2);
+        result.Value.Should().Contain(u => u.Name == "User 1");
+        result.Value.Should().Contain(u => u.Name == "User 2");
     }
 
     [Fact]

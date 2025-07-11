@@ -188,3 +188,76 @@ O Gateway usa Ocelot para rotear requisições:
 - [ ] Adicionar monitoramento e observabilidade
 - [ ] Implementar rate limiting
 - [ ] Adicionar cache distribuído 
+
+### AutoMapper
+
+O projeto utiliza [AutoMapper](https://automapper.org/) para mapear entidades e DTOs automaticamente, facilitando a conversão de dados entre camadas.
+
+**Exemplo de uso:**
+```csharp
+// Injeção do IMapper no serviço
+private readonly IMapper _mapper;
+
+public UserService(IUserRepository userRepository, IMapper mapper)
+{
+    _userRepository = userRepository;
+    _mapper = mapper;
+}
+
+// Conversão de entidade para DTO
+var userDto = _mapper.Map<UserDto>(userEntity);
+```
+
+Os perfis de mapeamento estão em `Application/Mapping/UserProfile.cs`.
+
+### Documentação Automática (Swagger)
+
+A API possui documentação automática gerada pelo Swagger. Para acessar:
+- **UserService**: [http://localhost:5000/swagger](http://localhost:5000/swagger)
+
+Você pode testar todos os endpoints diretamente pelo navegador, visualizar exemplos de requisições e respostas, além de descrições simples para cada rota e campo.
+
+> **Observação:** Os DTOs e endpoints possuem comentários XML e exemplos, que aparecem automaticamente no Swagger para facilitar o uso da API.
+
+### Exemplos de Uso (UserService)
+
+#### 1. Registrar um usuário:
+```bash
+curl -X POST "http://localhost:5000/api/auth/register" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Usuario Teste",
+    "email": "teste@exemplo.com",
+    "password": "Senha@123",
+    "confirmPassword": "Senha@123"
+  }'
+```
+
+#### 2. Fazer login:
+```bash
+curl -X POST "http://localhost:5000/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "teste@exemplo.com",
+    "password": "Senha@123"
+  }'
+```
+
+#### 3. Usar o token para acessar recursos protegidos:
+```bash
+curl -X GET "http://localhost:5000/api/user" \
+  -H "Authorization: Bearer {seu-token-jwt}"
+```
+
+#### 4. Buscar usuário por ID:
+```bash
+curl -X GET "http://localhost:5000/api/user/{user-id}" \
+  -H "Authorization: Bearer {seu-token-jwt}"
+```
+
+### Endpoints Documentados
+
+Todos os endpoints possuem descrições e exemplos no Swagger, incluindo:
+- **Auth**: Login, registro e refresh token
+- **User**: Listar, buscar por ID, criar usuário
+- **Health**: Verificar status do serviço e do gateway 

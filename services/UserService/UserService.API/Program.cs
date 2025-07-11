@@ -7,6 +7,11 @@ using UserService.Application.Services;
 using UserService.Domain.Interfaces;
 using UserService.Infrastructure.Data;
 using UserService.Infrastructure.Repositories;
+using FluentValidation.AspNetCore;
+using UserService.Application.Validators;
+using UserService.API.Filters;
+using UserService.Application.Mapping;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,7 +24,15 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<ValidationFilter>();
+})
+.AddFluentValidation(fv =>
+{
+    fv.RegisterValidatorsFromAssemblyContaining<CreateUserDtoValidator>();
+    fv.DisableDataAnnotationsValidation = true;
+});
 
 // Configuração do Entity Framework
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -55,6 +68,10 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService.Application.Services.UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IValidationService, ValidationService>();
+
+// Configuração do AutoMapper
+builder.Services.AddAutoMapper(typeof(UserProfile).Assembly);
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -86,7 +103,15 @@ builder.Services.AddSwaggerGen(c =>
             Array.Empty<string>()
         }
     });
+
+    // Inclusão do XML de documentação
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
 });
+
+// Configurar para escutar na porta 80
+builder.WebHost.UseUrls("http://0.0.0.0:5000");
 
 var app = builder.Build();
 
