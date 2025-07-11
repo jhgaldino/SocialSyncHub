@@ -261,3 +261,54 @@ Todos os endpoints possuem descrições e exemplos no Swagger, incluindo:
 - **Auth**: Login, registro e refresh token
 - **User**: Listar, buscar por ID, criar usuário
 - **Health**: Verificar status do serviço e do gateway 
+
+## Padrão ErrorOr
+
+A API utiliza o padrão [ErrorOr](https://github.com/amantinband/error-or) para respostas padronizadas de sucesso e erro. Isso facilita o tratamento de fluxos e a previsibilidade dos retornos.
+
+### Exemplo de resposta de sucesso (registro/login):
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expiresAt": "2025-07-11T12:15:58.7607691",
+  "user": {
+    "id": "8c7a6904-52a3-496a-a0ec-b8bfaf7cc94e",
+    "name": "Usuario Teste",
+    "email": "teste@exemplo.com",
+    "createdAt": "2025-07-11T12:15:58.7607691"
+  }
+}
+```
+
+### Exemplo de resposta de erro (validação, conflito, não encontrado):
+```json
+{
+  "message": "Email ou senha inválidos."
+}
+```
+
+- Os erros seguem o padrão do ErrorOr, podendo ser de tipos como `Validation`, `Conflict`, `NotFound`, etc.
+- Sempre verifique o corpo da resposta para detalhes do erro.
+
+## Testes Automatizados
+
+Para garantir a qualidade do código, execute os testes unitários:
+
+```bash
+cd services/UserService/UserService.Tests
+# Executar todos os testes
+ dotnet test
+```
+
+Todos os testes devem passar (✔) para garantir a integridade do sistema.
+
+## Documentação e Swagger
+
+- Todos os endpoints e modelos possuem documentação XML, exibida automaticamente no Swagger.
+- Exemplos e descrições aparecem na interface do Swagger para facilitar o uso.
+- Sempre que criar ou alterar endpoints, mantenha os comentários XML atualizados.
+
+## Contribuição
+
+Sinta-se à vontade para abrir issues, sugerir melhorias ou enviar pull requests! 

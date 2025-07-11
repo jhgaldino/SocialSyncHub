@@ -12,6 +12,7 @@ using UserService.Application.Validators;
 using UserService.API.Filters;
 using UserService.Application.Mapping;
 using System.Reflection;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -72,6 +73,13 @@ builder.Services.AddScoped<IValidationService, ValidationService>();
 
 // Configuração do AutoMapper
 builder.Services.AddAutoMapper(typeof(UserProfile).Assembly);
+
+// Configuração do Redis (cache distribuído)
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetSection("Redis")["Configuration"];
+    options.InstanceName = "UserService:";
+});
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

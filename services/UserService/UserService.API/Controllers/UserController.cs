@@ -4,6 +4,8 @@ using UserService.Application.DTOs;
 using UserService.Application.Services;
 using FluentValidation;
 using ErrorOr;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 
 namespace UserService.API.Controllers;
 
@@ -18,12 +20,14 @@ public class UserController : ControllerBase
     private readonly IUserService _userService;
     private readonly IValidationService _validationService;
     private readonly ILogger<UserController> _logger;
+    private readonly IDistributedCache _cache;
 
-    public UserController(IUserService userService, IValidationService validationService, ILogger<UserController> logger)
+    public UserController(IUserService userService, IValidationService validationService, ILogger<UserController> logger, IDistributedCache cache)
     {
         _userService = userService;
         _validationService = validationService;
         _logger = logger;
+        _cache = cache;
     }
 
     /// <summary>
@@ -34,9 +38,23 @@ public class UserController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<UserDto>> GetById(Guid id)
     {
+        var cacheKey = $"user:{id}";
+        var cachedUser = await _cache.GetStringAsync(cacheKey);
+        if (cachedUser != null)
+        {
+            var userDto = JsonSerializer.Deserialize<UserDto>(cachedUser);
+            return Ok(userDto);
+        }
+
         var result = await _userService.GetByIdAsync(id);
         return result.Match<ActionResult>(
-            user => Ok(user),
+            async user => {
+                await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(user), new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+                });
+                return Ok(user);
+            },
             erros => {
                 var erro = erros.First();
                 return erro.Type switch
