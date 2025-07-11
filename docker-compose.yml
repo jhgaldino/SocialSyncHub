@@ -17,8 +17,8 @@ services:
 
   userservice:
     build:
-      context: ./services/UserService/UserService.API
-      dockerfile: Dockerfile
+      context: ./services/UserService
+      dockerfile: UserService.API/Dockerfile
     container_name: userservice-api
     ports:
       - "5000:80"
