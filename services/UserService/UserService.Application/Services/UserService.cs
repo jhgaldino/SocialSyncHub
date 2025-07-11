@@ -9,11 +9,13 @@ namespace UserService.Application.Services;
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
+    private readonly ISocialAccountRepository _socialAccountRepository;
     private readonly IMapper _mapper;
 
-    public UserService(IUserRepository userRepository, IMapper mapper)
+    public UserService(IUserRepository userRepository, ISocialAccountRepository socialAccountRepository, IMapper mapper)
     {
         _userRepository = userRepository;
+        _socialAccountRepository = socialAccountRepository;
         _mapper = mapper;
     }
 
@@ -49,4 +51,53 @@ public class UserService : IUserService
     {
         return await _userRepository.ExistsAsync(id);
     }
-} 
+
+    public async Task<List<SocialAccountDto>> GetSocialAccountsAsync(Guid userId)
+    {
+        var accounts = await _socialAccountRepository.GetByUserIdAsync(userId);
+        return accounts.Select(a => _mapper.Map<SocialAccountDto>(a)).ToList();
+    }
+
+    public async Task<ErrorOr<SocialAccountDto>> ConnectSocialAccountAsync(Guid userId, ConnectSocialAccountDto dto)
+    {
+        // Verifica se o usuário existe
+        if (!await _userRepository.ExistsAsync(userId))
+        {
+            return Error.NotFound(description: "Usuário não encontrado.");
+        }
+
+        // Verifica se já existe uma conta conectada para esta rede social
+        var existing = await _socialAccountRepository.GetByUserAndNetworkAsync(userId, (SocialNetworkType)dto.NetworkType);
+        if (existing != null)
+        {
+            return Error.Conflict(description: $"Conta já conectada para {dto.NetworkType}");
+        }
+
+        // Cria nova conta social
+        var account = new SocialAccount
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            NetworkType = (SocialNetworkType)dto.NetworkType,
+            AccessToken = dto.AccessToken,
+            RefreshToken = dto.RefreshToken,
+            ExpiresAt = DateTime.UtcNow.AddDays(60) // Token expira em 60 dias por padrão
+        };
+
+        await _socialAccountRepository.AddAsync(account);
+
+        return _mapper.Map<SocialAccountDto>(account);
+    }
+
+    public async Task<ErrorOr<bool>> DisconnectSocialAccountAsync(Guid userId, SocialNetworkTypeDto networkType)
+    {
+        var account = await _socialAccountRepository.GetByUserAndNetworkAsync(userId, (SocialNetworkType)networkType);
+        if (account == null)
+        {
+            return Error.NotFound(description: $"Conta não encontrada para {networkType}");
+        }
+
+        await _socialAccountRepository.RemoveAsync(account.Id);
+        return true;
+    }
+}

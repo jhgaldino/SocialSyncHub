@@ -67,9 +67,17 @@ builder.Services.AddAuthentication(options =>
 
 // Registro das dependências
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ISocialAccountRepository, SocialAccountRepository>();
 builder.Services.AddScoped<IUserService, UserService.Application.Services.UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IValidationService, ValidationService>();
+builder.Services.AddScoped<IInstagramAuthService, InstagramAuthService>();
+builder.Services.AddHttpClient<InstagramAuthService>();
+// Necessário para injeção do ISocialAccountRepository no InstagramAuthController
+builder.Services.AddScoped<ISocialAccountRepository, SocialAccountRepository>();
+builder.Services.AddScoped<IInstagramMediaRepository, InstagramMediaRepository>();
+builder.Services.AddScoped<IInstagramSyncService, InstagramSyncService>();
+builder.Services.AddHttpClient<InstagramSyncService>();
 
 // Configuração do AutoMapper
 builder.Services.AddAutoMapper(typeof(UserProfile).Assembly);
@@ -118,8 +126,8 @@ builder.Services.AddSwaggerGen(c =>
     c.IncludeXmlComments(xmlPath);
 });
 
-// Configurar para escutar na porta 80
-builder.WebHost.UseUrls("http://0.0.0.0:5000");
+// Configurar para escutar nas portas 5000 (UserService) e 5001 (HTTPS, se necessário)
+builder.WebHost.UseUrls("http://localhost:5000", "https://localhost:5001");
 
 var app = builder.Build();
 

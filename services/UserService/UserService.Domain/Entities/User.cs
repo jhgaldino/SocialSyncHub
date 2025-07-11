@@ -2,6 +2,37 @@ using System.ComponentModel.DataAnnotations;
 
 namespace UserService.Domain.Entities;
 
+public enum SocialNetworkType
+{
+    Instagram,
+    TikTok,
+    X
+}
+
+public class SocialAccount
+{
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public SocialNetworkType NetworkType { get; set; }
+    [Required]
+    public string AccessToken { get; set; } = string.Empty;
+    public string? RefreshToken { get; set; }
+    public DateTime? ExpiresAt { get; set; }
+    public string? Username { get; set; }
+    public User? User { get; set; }
+}
+
+public class InstagramMedia
+{
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public string MediaId { get; set; } = string.Empty;
+    public string MediaType { get; set; } = string.Empty;
+    public string MediaUrl { get; set; } = string.Empty;
+    public string? Caption { get; set; }
+    public DateTime Timestamp { get; set; }
+}
+
 public class User
 {
     public Guid Id { get; set; }
@@ -35,4 +66,4 @@ public class User
         Email = email;
         PasswordHash = passwordHash;
     }
-} 
+}

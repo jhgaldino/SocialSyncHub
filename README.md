@@ -1,6 +1,8 @@
 # SocialSyncHub
 
-Um projeto de estudo e portfólio que utiliza arquitetura de microserviços em C# (.NET 8).
+Um projeto de estudo que utiliza arquitetura de microserviços em C# (.NET 8).
+Sincronização de dados entre serviços de redes sociais.
+
 
 ## Estrutura do Projeto
 

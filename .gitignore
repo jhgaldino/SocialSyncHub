@@ -42,6 +42,7 @@ TestResults/
 secrets.json
 appsettings.Development.json
 appsettings.Local.json
+appsettings.json
 
 # Publish
 publish/
@@ -65,3 +66,4 @@ node_modules/
 # Ignore gateway logs
 gateway/Gateway.API/logs/
 services/UserService/UserService.API/logs/ 
+/services/InstagramService/InstagramService.API/appsettings.json

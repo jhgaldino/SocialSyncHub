@@ -20,4 +20,4 @@ public class UserDto
     /// <example>2025-07-11T12:15:58.7607691</example>
     /// <summary>Data de criação do usuário</summary>
     public DateTime CreatedAt { get; set; }
-} 
+}

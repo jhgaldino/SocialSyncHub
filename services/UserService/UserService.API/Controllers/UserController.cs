@@ -48,11 +48,12 @@ public class UserController : ControllerBase
 
         var result = await _userService.GetByIdAsync(id);
         return result.Match<ActionResult>(
-            async user => {
-                await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(user), new DistributedCacheEntryOptions
+            user => {
+                // Salva no cache de forma síncrona (mas fora do Match)
+                _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(user), new DistributedCacheEntryOptions
                 {
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
-                });
+                }).GetAwaiter().GetResult();
                 return Ok(user);
             },
             erros => {
@@ -115,6 +116,56 @@ public class UserController : ControllerBase
             erros => {
                 var erro = erros.First();
                 return StatusCode(500, new { message = erro.Description });
+            }
+        );
+    }
+
+    /// <summary>
+    /// Lista as contas sociais conectadas do usuário.
+    /// </summary>
+    [HttpGet("{userId:guid}/social-accounts")]
+    public async Task<ActionResult<List<SocialAccountDto>>> GetSocialAccounts(Guid userId)
+    {
+        var result = await _userService.GetSocialAccountsAsync(userId);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Conecta uma conta social ao usuário.
+    /// </summary>
+    [HttpPost("{userId:guid}/social-accounts")]
+    public async Task<ActionResult<SocialAccountDto>> ConnectSocialAccount(Guid userId, [FromBody] ConnectSocialAccountDto dto)
+    {
+        var result = await _userService.ConnectSocialAccountAsync(userId, dto);
+        return result.Match<ActionResult>(
+            ok => Ok(ok),
+            erros => {
+                var erro = erros.First();
+                return erro.Type switch
+                {
+                    ErrorType.Conflict => Conflict(new { message = erro.Description }),
+                    _ => StatusCode(500, new { message = erro.Description })
+                };
+            }
+        );
+    }
+
+    /// <summary>
+    /// Desconecta uma conta social do usuário.
+    /// </summary>
+    [HttpDelete("{userId:guid}/social-accounts/{networkType}")]
+    public async Task<ActionResult> DisconnectSocialAccount(Guid userId, SocialNetworkTypeDto networkType)
+    {
+        var result = await _userService.DisconnectSocialAccountAsync(userId, networkType);
+        return result.Match<ActionResult>(
+            ok => NoContent(),
+            erros => {
+                var erro = erros.First();
+                return erro.Type switch
+                {
+                    ErrorType.NotFound => NotFound(new { message = erro.Description }),
+                    _ => StatusCode(500, new { message = erro.Description })
+                };
             }
         );
     }
