@@ -127,7 +127,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // Configurar para escutar nas portas 5000 (UserService) e 5001 (HTTPS, se necessário)
-builder.WebHost.UseUrls("http://localhost:5000", "https://localhost:5001");
+builder.WebHost.UseUrls("http://0.0.0.0:80");
 
 var app = builder.Build();
 
@@ -141,7 +141,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); // Removido para evitar erro de HTTPS no Docker
 
 app.UseAuthentication();
 app.UseAuthorization();
